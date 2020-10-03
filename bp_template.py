@@ -10,22 +10,59 @@ class neuralNetwork:
         The network consists of three types of layers: input layer(784 nodes), hidden layers and output layer(10 nodes).
         You can define the number of hidden nodes and layers you want.
         '''
-        
+        self.inodes = inputnodes
+        self.hnodes = hiddennodes
+        self.onodes = outputnodes
+
+        self.inputs = None
+        self.hidden_outputs = None
+        self.final_outputs = None
+        self.lr = learningrate
+
+        self.wih = np.random.normal(0.0, pow(self.inodes, -0.5), (self.inodes, self.hnodes))
+        self.who = np.random.normal(0.0, pow(self.hnodes, -0.5), (self.hnodes, self.onodes))
+
+        self.activation_function = lambda x: 1./(1 + np.exp(-x))
+        #???????????????????????????//
         pass
 
     def forward(self, inputs_list):
         '''
         forward the neural network
         '''
-        
+        self.inputs = np.array(inputs_list, ndmin=2).T
+
+        hidden_inputs = np.dot(self.inputs.T, self.wih)#?????????????????????
+        self.hidden_outputs = self.activation_function(hidden_inputs)
+
+        final_inputs = np.dot(self.hidden_outputs, self.who)
+        self.final_outputs = self.activation_function(final_inputs)
         pass
 
     def Backpropagation(self, targets_list):
         '''
         propagate backword
         '''
+        targets = np.array(targets_list, ndmin=2)
 
-        pass
+        output_errors = targets - self.final_outputs
+        g_temp = self.final_outputs[0] * (1 - self.final_outputs[0]) * output_errors[0]
+        g = np.array(g_temp, ndmin=2).T
+        self.who = self.who + self.lr * np.dot(self.hidden_outputs.T, g.T)
+
+        #def cal_temp(h):
+        #    ans = 0
+        #    for i in range(0, self.onodes):
+        #        ans += self.who[h][i] * g[i]
+        #    return ans
+
+        #for i in range(0, self.hnodes):
+        #    e_temp[i] = self.hidden_outputs[0][i] * (1 - self.hidden_outputs[0][i]) * cal_temp(i)
+        e_temp = self.hidden_outputs[0] * (1 - self.hidden_outputs[0]) * np.dot(self.who, g).T
+        e = np.array(e_temp, ndmin=2)
+        temp2 = self.lr * np.dot(self.inputs, e)
+        self.wih = self.wih + temp2
+        return np.sum(output_errors ** 2)
 
 def train_net(net, training_data_list):
     '''
@@ -40,6 +77,8 @@ def train_net(net, training_data_list):
     for e in range(epochs):
         # go through all records in the training data set
         error = 0
+        temp1 = None
+        temp2 = None
         for i in range(len(training_data_list)):
             record = training_data_list[i]
             # split the record by the ',' commas
@@ -54,6 +93,23 @@ def train_net(net, training_data_list):
             # Forward network and propagate backward
             net.forward(inputs)
             error += net.Backpropagation(targets)
+
+
+            #if i == 0:
+            #    temp1 = net.wih
+            #    temp2 = net.who
+            #else:
+            #    if (net.wih == temp1).all():
+            #        print("", end="")
+            #    else:
+            #        print("111")
+            #    if (net.who == temp2).all():
+            #        print("", end="")
+            #    else:
+            #        print("222change!")
+            #    temp1 = net.wih
+            #    temp2 = net.who
+
 
             # print error
             if (i + 1) % 5000 == 0:
@@ -97,7 +153,7 @@ if __name__ == "__main__":
 
     # number of input, hidden and output nodes
     input_nodes = 784
-    hidden_nodes = None # you can define the numbers of nodes you want and more hidden layers
+    hidden_nodes = 200 # you can define the numbers of nodes you want and more hidden layers
     output_nodes = 10
 
     # learning rate
@@ -132,8 +188,8 @@ if __name__ == "__main__":
     print("Testing time: {:.3f}s".format(time.time() - start_testing_time))
 
     # Save weight parameters
-    # np.save('./who.npy', net.who)
-    # np.save('./whi.npy', net.wih)
+    np.save('./who.npy', net.who)
+    np.save('./whi.npy', net.wih)
 
     # Ending time
     end_time = time.time()
